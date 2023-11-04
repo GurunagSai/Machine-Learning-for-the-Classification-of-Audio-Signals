@@ -5,13 +5,16 @@ import re
 # Training data set directory
 directory_path = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification/DataSet/Training Dataset/'
 
-srno_append = 0
+srno_append = -4500
 
 # Initialize a list to store the file information
 file_info = []
 
 # Iterate through the files in the training directory
 for root, dirs, files in os.walk(directory_path):
+    print(root)
+    print(dirs)
+    print(srno_append)
     for filename in files:
         
         # Get all the info relkated to file name and path and add to respective file property
@@ -20,8 +23,9 @@ for root, dirs, files in os.walk(directory_path):
         
         class_name = os.path.basename(os.path.dirname(file_path))
         
-        num = [int(x) for x in file_path.split() if x.isdigit()] 
-        serial_number = num + srno_append
+        num = file_path.replace(class_name + '\\' + class_name, "")
+        num = int(num.replace('.wav', ""))
+        serial_number = int(num) + int(srno_append)
         
         # Naming class_id as per the file name
         if class_name == 'black':
@@ -35,7 +39,8 @@ for root, dirs, files in os.walk(directory_path):
 
         # Append the information to the file_info list
         file_info.append([serial_number, class_name, class_id, file_path])
-    srno_append = 4500
+    if dir:
+        srno_append = srno_append + 4500
 
 # Define the CSV file name
 csv_file = 'DataSetCSV.csv'
