@@ -1,6 +1,7 @@
 import os
 import csv
 import re
+import librosa
 
 # Training data set directory
 directory_path = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification/DataSet/Training Dataset/'
@@ -27,6 +28,10 @@ for root, dirs, files in os.walk(directory_path):
         num = int(num.replace('.wav', ""))
         serial_number = int(num) + int(srno_append)
         
+        # audio data
+        audio_data, sampling_rate = librosa.load(os.path.join(root, filename), sr=None)
+        audio_duration = librosa.get_duration(y=audio_data, sr=sampling_rate)
+        
         # Naming class_id as per the file name
         if class_name == 'black':
             class_id = 1
@@ -38,7 +43,7 @@ for root, dirs, files in os.walk(directory_path):
             class_id = 4
 
         # Append the information to the file_info list
-        file_info.append([serial_number, class_name, class_id, file_path])
+        file_info.append([serial_number, class_name, class_id, file_path, sampling_rate, audio_duration])
     if dir:
         srno_append = srno_append + 4500
 
@@ -49,7 +54,7 @@ csv_file = 'DataSetCSV.csv'
 with open(csv_file, 'w', newline='') as csvfile:
     csv_writer = csv.writer(csvfile)
     # Header of CSV file
-    csv_writer.writerow(['Serial Number', 'Class Name', 'Class ID', 'Relative file path'])
+    csv_writer.writerow(['Serial Number', 'Class Name', 'Class ID', 'Relative file path', 'Sampling rate(Hz)', 'Audio Duration(sec)'])
     # Writing the data
     csv_writer.writerows(file_info)
 
