@@ -25,8 +25,11 @@ for root, dirs, files in os.walk(directory_path):
         class_name = os.path.basename(os.path.dirname(file_path))
         
         num = file_path.replace(class_name + '\\' + class_name, "")
+        file_name = class_name + num
         num = int(num.replace('.wav', ""))
         serial_number = int(num) + int(srno_append)
+        
+        
         
         # audio data
         audio_data, sampling_rate = librosa.load(os.path.join(root, filename), sr=None)
@@ -43,7 +46,7 @@ for root, dirs, files in os.walk(directory_path):
             class_id = 4
 
         # Append the information to the file_info list
-        file_info.append([serial_number, class_name, class_id, file_path, sampling_rate, audio_duration])
+        file_info.append([serial_number, class_name, class_id, file_name, file_path, sampling_rate, audio_duration])
     if dir:
         srno_append = srno_append + 4500
 
@@ -54,7 +57,7 @@ csv_file = 'DataSetCSV.csv'
 with open(csv_file, 'w', newline='') as csvfile:
     csv_writer = csv.writer(csvfile)
     # Header of CSV file
-    csv_writer.writerow(['Serial Number', 'Class Name', 'Class ID', 'Relative file path', 'Sampling rate(Hz)', 'Audio Duration(sec)'])
+    csv_writer.writerow(['Serial Number', 'Class Name', 'Class ID', 'file name', 'Relative file path', 'Sampling rate(Hz)', 'Audio Duration(sec)'])
     # Writing the data
     csv_writer.writerows(file_info)
 
