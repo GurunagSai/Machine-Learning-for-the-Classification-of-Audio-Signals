@@ -10,11 +10,11 @@ from scipy.io import wavfile
 from scipy import fftpack
 from scipy.stats import kurtosis,skew,mode
 
-#Function to extract the training data
-def get_training(path_to_train):
+#Function to extract the training data and convert to numpy files
+def get_traindata(path_to_train):
     
     # Load the training data csv file into a dataframe. 
-    df = pd.read_csv(os.path.join(path_to_train,'DataSetCSV.csv'))
+    df = pd.read_csv(os.path.join(path_to_train,'TrainDataSetCSV.csv'))
 
     # Creating folder to store the Numpy arrays if they don't exist.
     if not os.path.exists(os.path.join(path_to_train,'train_extracted')):
@@ -28,6 +28,23 @@ def get_training(path_to_train):
         d,r = librosa.load(os.path.join(path_to_train +'/DataSet/Training Dataset',str(audio_files_path[i]).zfill(8)))
         np.save(os.path.join(path_to_train, 'train_extracted',str(audio_files[i].replace(".wav",""))+'.npy'),d)
 
+#Function to get test data and convert it into numpy files
+def get_testdata(path_to_test):
+    
+    # Load the training data csv file into a dataframe. 
+    df = pd.read_csv(os.path.join(path_to_test,'TestDataSetCSV.csv'))
+
+    # Creating folder to store the Numpy arrays if they don't exist.
+    if not os.path.exists(os.path.join(path_to_test,'test_extracted')):
+        os.makedirs(os.path.join(path_to_test,'test_extracted'))
+
+    # Getting the file names of audios from the dataframe.
+    audio_files = np.array(df['file name'])
+    audio_files_path = np.array(df['Relative file path'])
+    # Load each audio file, save it as a numpy array
+    for i in range(len(audio_files)):    
+        d,r = librosa.load(os.path.join(path_to_test +'/DataSet/Test Dataset',str(audio_files_path[i]).zfill(8)))
+        np.save(os.path.join(path_to_test, 'test_extracted',str(audio_files[i].replace(".wav",""))+'.npy'),d)
 
 #Function to extract all the MFCC features from audio data
 def get_mfcc_features(path_to_train, csv_file, extracted_folder):
@@ -71,8 +88,9 @@ def get_mfcc_features(path_to_train, csv_file, extracted_folder):
 # MAIN
 path_to_dir = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification'
 path_trainingdata = '/DataSet/Training Dataset'
-get_training(path_to_dir)
-X_train = get_mfcc_features(path_to_dir,'DataSetCSV.csv','train_extracted')
+#get_traindata(path_to_dir)
+get_testdata(path_to_dir)
+X_train = get_mfcc_features(path_to_dir,'TrainDataSetCSV.csv','train_extracted')
 
 
 
