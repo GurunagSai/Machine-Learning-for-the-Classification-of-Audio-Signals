@@ -1,6 +1,7 @@
 import os
 import glob
 import librosa
+import librosa.feature
 import librosa.display
 import numpy as np
 import pandas as pd
@@ -36,7 +37,7 @@ def get_mfcc_features(path_to_train, csv_file, extracted_folder):
 
   # Get the audio file names.
   audio_extracted = np.array(df['file name'])
-
+  
   # Create an empty list to store the features.
   mfcc_features=list()
 
@@ -65,8 +66,13 @@ def get_mfcc_features(path_to_train, csv_file, extracted_folder):
   # Return feature list.
   return mfcc_features
 
+
+
 # MAIN
 path_to_dir = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification'
 path_trainingdata = '/DataSet/Training Dataset'
-#get_training(path_to_dir)
+get_training(path_to_dir)
 X_train = get_mfcc_features(path_to_dir,'DataSetCSV.csv','train_extracted')
+
+
+

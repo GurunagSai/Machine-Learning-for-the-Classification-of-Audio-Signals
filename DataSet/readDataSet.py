@@ -6,7 +6,7 @@ import librosa
 # Training data set directory
 directory_path = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification/DataSet/Training Dataset/'
 
-srno_append = -4500
+srno_append = -6000
 
 # Initialize a list to store the file information
 file_info = []
@@ -48,7 +48,7 @@ for root, dirs, files in os.walk(directory_path):
         # Append the information to the file_info list
         file_info.append([serial_number, class_name, class_id, file_name, file_path, sampling_rate, audio_duration])
     if dir:
-        srno_append = srno_append + 4500
+        srno_append = srno_append + 6000
 
 # Define the CSV file name
 csv_file = 'DataSetCSV.csv'
