@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from scipy.io import wavfile
 from scipy import fftpack
 from scipy.stats import kurtosis,skew,mode
+from sklearn.preprocessing import StandardScaler
+from sklearn import svm
 
 #Function to extract the training data and convert to numpy files
 def get_traindata(path_to_train):
@@ -51,22 +53,16 @@ def get_mfcc_features(path_to_train, csv_file, extracted_folder):
 
   # Load the csv file into a dataframe.
   df = pd.read_csv(os.path.join(path_to_train, csv_file ))
-
   # Get the audio file names.
   audio_extracted = np.array(df['file name'])
-  
   # Create an empty list to store the features.
   mfcc_features=list()
-
   # Looping on each Audio sequence array.
-  for i in range(len(audio_extracted)):
-        
+  for i in range(len(audio_extracted)):       
     # Load the Audio sequence.
-    audio_file_data= np.load(os.path.join(path_to_train, extracted_folder, str(audio_extracted[i])+'.npy'))
-
+    audio_file_data= np.load(os.path.join(path_to_train, extracted_folder, str(audio_extracted[i].replace(".wav",".npy"))))
     # Calculate MFCC coefficients for the audio sequence.
-    mfcc_data = librosa.feature.mfcc(y=audio_file_data,sr=22050)
-
+    mfcc_data = librosa.feature.mfcc(y=audio_file_data,sr=44100)
     # Calculating various statistic measures on the coefficients.
     mean_mfcc = np.mean(mfcc_data, axis=1)
     median_mfcc= np.median(mfcc_data,axis=1)
@@ -75,7 +71,6 @@ def get_mfcc_features(path_to_train, csv_file, extracted_folder):
     kurt_mfcc = kurtosis(mfcc_data, axis=1)
     maximum_mfcc = np.amax(mfcc_data, axis=1)
     minimum_mfcc = np.amin(mfcc_data, axis=1)
-
     # Concatinating all the statistic measures and adding to the feature list.
     addList = np.concatenate((mean_mfcc,median_mfcc,std_mfcc,skew_mfcc,kurt_mfcc,maximum_mfcc,minimum_mfcc))
     mfcc_features.append(addList) 
@@ -83,14 +78,59 @@ def get_mfcc_features(path_to_train, csv_file, extracted_folder):
   # Return feature list.
   return mfcc_features
 
+# Function to retrive all the labels of training data
+def get_labels(original_path,csv_file):
 
+  # Load the csv file into a dataframe.
+  df = pd.read_csv(os.path.join(original_path, csv_file ))
+
+  # Return the labels.
+  labels = np.array(df['Class ID'])
+
+  return labels
+
+#Funtion to standardize the features
+def standardize_features(X_train,X_test):
+
+  # Initialize standard scalar with zero mean
+  sc = StandardScaler(with_mean=False)
+
+  # Fit and transform the Training Dataset.
+  X_train= sc.fit_transform(X_train)
+
+  # Transform the testing set.
+  X_test = sc.transform(X_test)
+  
+  return X_train,X_test
+
+#Function to use Support Vector Machines classifier
+def svm_classifier(X_train,Y_train,X_test):
+
+  # Intialize SVM classifier with One-vs-Rest decision function.
+  svm_model = svm.SVC(decision_function_shape='ovr')
+
+  # Fit the Training Dataset.
+  svm_model.fit(X_train, Y_train)
+
+  # Predict and return labels.
+  return svm_model.predict(X_test)
 
 # MAIN
 path_to_dir = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification'
-path_trainingdata = '/DataSet/Training Dataset'
+path_traindata = '/DataSet/Training Dataset'
+path_traindata = '/DataSet/Test Dataset'
+
+#Run the below two lines of code to extract the datset and convert them to Numpy files
 #get_traindata(path_to_dir)
-get_testdata(path_to_dir)
+#get_testdata(path_to_dir)
+
 X_train = get_mfcc_features(path_to_dir,'TrainDataSetCSV.csv','train_extracted')
+Y_train = get_labels(path_to_dir,'TrainDataSetCSV.csv')
+X_test = get_mfcc_features(path_to_dir,'TestDataSetCSV.csv','test_extracted')
+X_train,X_test = standardize_features(X_train,X_test)
 
-
-
+y_test_svm = svm_classifier(X_train,Y_train,X_test)
+Y_test = pd.read_csv(os.path.join(path_to_dir,'TestDataSetCSV.csv'))
+Y_test['Class ID'] = y_test_svm.tolist()
+Y_test = Y_test.rename(columns={"new_id":"id"})
+Y_test.to_csv(os.path.join(path_to_dir,'predict_svm.csv'),index=False)
