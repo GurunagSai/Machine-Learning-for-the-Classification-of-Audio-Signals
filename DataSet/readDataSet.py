@@ -4,9 +4,9 @@ import re
 import librosa
 
 # Training data set directory
-directory_path = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification/DataSet/Test Dataset/'
+directory_path = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification/DataSet/Test DataSet/'
 
-srno_append = 0
+srno_append = -700
 
 # Initialize a list to store the file information
 file_info = []
@@ -20,11 +20,10 @@ for root, dirs, files in os.walk(directory_path):
         
         # Get all the info relkated to file name and path and add to respective file property
         file_path = os.path.join(root, filename)
-        file_path = file_path.replace(directory_path,"")
-    
-        file_name = file_path
-        serial_number = file_path.replace('test',"")
-        serial_number = serial_number.replace('.wav', "")
+        file_name = file_path.replace(directory_path,"")
+        
+        serial_number = file_name.replace('test',"")
+        serial_number = int(serial_number.replace('.wav', ""))
         # audio data
         audio_data, sampling_rate = librosa.load(os.path.join(root, filename), sr=None)
         audio_duration = librosa.get_duration(y=audio_data, sr=sampling_rate)
@@ -32,7 +31,7 @@ for root, dirs, files in os.walk(directory_path):
         # Append the information to the file_info list
         file_info.append([serial_number, file_name, file_path, sampling_rate, audio_duration])
     if dir:
-        srno_append = srno_append + 6000
+        srno_append = srno_append + 700
 
 # Define the CSV file name
 csv_file = 'TestDataSetCSV.csv'
