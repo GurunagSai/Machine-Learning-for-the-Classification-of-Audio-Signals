@@ -15,42 +15,44 @@ from sklearn.metrics import accuracy_score,confusion_matrix
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # Function to extract the training data and convert to numpy files
-def get_traindata(path_to_train):
+def get_traindata(dir_path,path_traindata):
     
     # Load the training data csv file into a dataframe. 
-    df = pd.read_csv(os.path.join(path_to_train,'TrainDataSetCSV.csv'))
+    df = pd.read_csv(os.path.join(dir_path,'TrainDataSetCSV.csv'))
     
     # Creating folder to store the Numpy arrays if they don't exist.
-    if not os.path.exists(os.path.join(path_to_train,'train_extracted')):
-        os.makedirs(os.path.join(path_to_train,'train_extracted'))
+    if not os.path.exists(os.path.join(dir_path,'train_extracted')):
+        os.makedirs(os.path.join(dir_path,'train_extracted'))
         
     # Getting the file names of audios from the dataframe.
     audio_files = np.array(df['file name'])
     audio_files_path = np.array(df['Relative file path'])
     
     # Load each audio file, save it as a numpy array
-    for i in range(len(audio_files)):    
-        d,r = librosa.load(os.path.join(path_to_train +'/DataSet/Training Dataset',str(audio_files_path[i]).zfill(8)))
-        np.save(os.path.join(path_to_train, 'train_extracted',str(audio_files[i].replace(".wav",""))+'.npy'),d)
+    for i in range(len(audio_files)):   
+        path = os.path.join(dir_path, path_traindata, str(audio_files_path[i]).zfill(8))
+        d,r = librosa.load(path)
+        np.save(os.path.join(dir_path, 'train_extracted',str(audio_files[i].replace(".wav",""))+'.npy'),d)
 
 # Function to get test data and convert it into numpy files
-def get_testdata(path_to_test):
+def get_testdata(dir_path, path_testdata):
     
-    # Load the training data csv file into a dataframe. 
-    df = pd.read_csv(os.path.join(path_to_test,'TestDataSetCSV.csv'))
+    # Load the training data csv file into a datwaframe. 
+    df = pd.read_csv(os.path.join(dir_path,'TestDataSetCSV.csv'))
     
     # Creating folder to store the Numpy arrays if they don't exist.
-    if not os.path.exists(os.path.join(path_to_test,'test_extracted')):
-        os.makedirs(os.path.join(path_to_test,'test_extracted'))
+    if not os.path.exists(os.path.join(dir_path,'test_extracted')):
+        os.makedirs(os.path.join(dir_path,'test_extracted'))
         
     # Getting the file names of audios from the dataframe.
     audio_files = np.array(df['file name'])
     audio_files_path = np.array(df['Relative file path'])
     
     # Load each audio file, save it as a numpy array
-    for i in range(len(audio_files)):    
-        d,r = librosa.load(os.path.join(path_to_test +'/DataSet/Test Dataset',str(audio_files_path[i]).zfill(8)))
-        np.save(os.path.join(path_to_test, 'test_extracted',str(audio_files[i].replace(".wav",""))+'.npy'),d)
+    for i in range(len(audio_files)): 
+        path=os.path.join(dir_path, path_testdata, str(audio_files_path[i]))
+        d,r = librosa.load(path)
+        np.save(os.path.join(dir_path,'test_extracted',str(audio_files[i].replace(".wav",""))+'.npy'),d)
 
 # Function to extract all the MFCC features from audio data
 def get_mfcc_features(path_to_train, csv_file, extracted_folder):
@@ -61,7 +63,7 @@ def get_mfcc_features(path_to_train, csv_file, extracted_folder):
   # Get the audio file names.
   audio_extracted = np.array(df['file name'])
   
-  #  Create an empty list to store the features.
+  # Create an empty list to store the features.
   mfcc_features=list()
   
   # Looping on each Audio sequence array.
@@ -123,7 +125,7 @@ def plot_confusion_matrix(y_true,y_pred,classifier):
     fig = plt.figure(figsize=(5,6))
     plt.imshow(confusion_mat, cmap=plt.cm.Blues, interpolation='nearest')  
      
-    #  Set the x, y and title labels for the plot.
+    # Set the x, y and title labels for the plot.
     plt.xlabel("Expected Outputs", fontsize=10)
     plt.ylabel("Actual Outputs", fontsize=10)
     plt.title("Confusion Matrix of "+ classifier + " classifier",fontsize=12)  
@@ -149,7 +151,7 @@ def plot_confusion_matrix(y_true,y_pred,classifier):
 def svm_classifier(X_train,Y_train,X_test):
 
   # Intialize SVM classifier with One-vs-Rest decision function.
-  svm_model = svm.SVC(decision_function_shape='ovr')
+  svm_model = svm.SVC(kernel='rbf', decision_function_shape='ovr')
   # Fit the Training Dataset.
   svm_model.fit(X_train, Y_train)
   # Predict labels for the test dataset.
@@ -159,12 +161,12 @@ def svm_classifier(X_train,Y_train,X_test):
 
 #-------------MAIN-------------# 
 path_to_dir = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification'
-path_traindata = '/DataSet/Training Dataset'
-path_traindata = '/DataSet/Test Dataset'
+path_traindata = 'DataSet/Training Dataset'
+path_testdata = 'DataSet/Test Dataset'
 
 # Run the below two lines of code to extract the datset and convert them to Numpy files
-#get_traindata(path_to_dir)
-#get_testdata(path_to_dir)
+get_traindata(path_to_dir,path_traindata)
+get_testdata(path_to_dir,path_testdata)
  
 #-------------Support Vector Machine with MFCC model-------------# 
 # Get the training and testing data preprocessed with MFCC
