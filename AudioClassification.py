@@ -277,7 +277,7 @@ get_testdata(path_to_dir,path_testdata) """
 X_train = get_mfcc_features(path_to_dir,'TrainDataSetCSV.csv','train_extracted')
 Y_train = get_labels(path_to_dir,'TrainDataSetCSV.csv')
 X_test = get_mfcc_features(path_to_dir,'TestDataSetCSV.csv','test_extracted')
-X_train,X_test = standardize_features(X_train,X_test)
+#X_train,X_test = standardize_features(X_train,X_test)
 
 # Using SVM classifier to classify the data and storing the result to SVM_MFCC_predict.csv file
 y_test_svm = svm_classifier(X_train,Y_train,X_test)
