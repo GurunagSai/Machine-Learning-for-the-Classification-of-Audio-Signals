@@ -132,14 +132,45 @@ def standardize_features(X_train,X_test):
 def plot_confusion_matrix(y_true,y_pred,classifier):
     
     label_names=["Black","Red","Silver"]
+    conf_matrix = confusion_matrix(y_true, y_pred)
     # Calculate the confusion matrix and metrics using the expected and predicted values.
-    confusion_mat = confusion_matrix(np.array(y_true),y_pred)
-    accuracy = accuracy_score(np.array(y_true), y_pred)
+    accuracy = accuracy_score(y_true, y_pred) * 100
+    precision = precision_score(y_true, y_pred, average='weighted') * 100
+    recall = recall_score(y_true, y_pred, average='weighted') * 100
+    f1 = f1_score(y_true, y_pred, average='weighted') * 100
+
+    # Calculate additional metrics
+    TP = np.diag(conf_matrix)
+    FP = np.sum(conf_matrix, axis=0) - TP
+    FN = np.sum(conf_matrix, axis=1) - TP
+    TN = np.sum(conf_matrix) - (TP + FP + FN)
+
+    TPR = TP / (TP + FN)
+    TNR = TN / (TN + FP)
+    FPR = FP / (FP + TN)
+    FNR = FN / (TP + FN)
+    # Convert percentages
+    TPR_percentage = np.round(TPR * 100, 2)
+    TNR_percentage = np.round(TNR * 100, 2)
+    FPR_percentage = np.round(FPR * 100, 2)
+    FNR_percentage = np.round(FNR * 100, 2)
     
     # Show the confusion matrix values.
-    fig = plt.figure(figsize=(5,6))
-    plt.imshow(confusion_mat, cmap=plt.cm.Blues, interpolation='nearest')  
-     
+    fig = plt.figure(figsize=(5,8))
+    plt.imshow(conf_matrix, cmap=plt.cm.Blues, interpolation='nearest')  
+
+    # Display metrics at the bottom of the plot
+    metrics_text = (
+        f'Accuracy: {np.round(accuracy, 2)}%  '
+        f'Precision: {np.round(precision, 2)}%\n'
+        f'Recall: {np.round(recall, 2)}%  '
+        f'F1 Score: {np.round(f1, 2)}%\n'
+        f"TPR in %: {TPR_percentage}\n"
+        f"TNR in %: {TNR_percentage}\n"
+        f"FPR in %: {FPR_percentage}\n"
+        f"FNR in %: {FNR_percentage}"
+    ) 
+    
     # Set the x, y and title labels for the plot.
     plt.xlabel("Expected Outputs", fontsize=10)
     plt.ylabel("Actual Outputs", fontsize=10)
@@ -150,12 +181,11 @@ def plot_confusion_matrix(y_true,y_pred,classifier):
     plt.yticks(np.arange(len(label_names)), label_names,)
     plt.tick_params(axis='both', labelsize='10')
     plt.tight_layout()
-    for (y, x), label in np.ndenumerate(confusion_mat):
+    for (y, x), label in np.ndenumerate(conf_matrix):
         if label != 0:
             plt.text(x,y,label,ha='center',va='center', size='12')
                  
     # Display metrics on the plot
-    metrics_text = f"Accuracy: {accuracy:.4f}"
     plt.figtext(0.5, 0.01, metrics_text, ha='center', fontsize=12)
     
     # Save and Show the plot
@@ -227,8 +257,8 @@ def get_spectrograms(path_to_dir, train_csv , train_extracted, test_csv ,test_ex
         val_data,val_labels=X_train[test_index],Y_train[test_index] 
   
   # One hot encoding the Training and validation labels.
-  Y_train = to_categorical(train_labels,6)
-  Y_val = to_categorical(val_labels,6)
+  Y_train = to_categorical(train_labels,4)
+  Y_val = to_categorical(val_labels,4)
 
 # Reshaping the features into the form (rows, columns, 1) for Convolutional Neural Networks.
   X_train = [training_data[i].reshape(target_shape[0], target_shape[1], 1) for i in range(len(training_data))]
@@ -239,23 +269,22 @@ def get_spectrograms(path_to_dir, train_csv , train_extracted, test_csv ,test_ex
 
 #Function to use CNN classifier
 def cnn_classifier(inputShape):
-    number_of_classes=3
     # Intializing the model sequential.
     model = Sequential()
 
     # Convolutional layers
-    model.add(layers.Conv2D(32, (2, 2), activation='relu', input_shape=inputShape))
+    model.add(layers.Conv2D(16, (2, 2), activation='relu', input_shape=inputShape))
     model.add(layers.MaxPooling2D((2, 2)))
     model.add(layers.BatchNormalization())
 
-    model.add(layers.Conv2D(64, (2, 2), activation='relu'))
+    model.add(layers.Conv2D(32, (2, 2), activation='relu'))
     model.add(layers.MaxPooling2D((2, 2)))
     model.add(layers.BatchNormalization())
 
     model.add(Flatten())
-    model.add(Dense(128, activation='relu'))
+    model.add(Dense(32, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(6,activation='softmax'))
+    model.add(Dense(4,activation='softmax'))
     
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])  
 
@@ -268,8 +297,8 @@ path_to_dir = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification
 path_traindata = 'DataSet/Training Dataset'
 path_testdata = 'DataSet/Test Dataset'
 
-# Run the below two lines of code to extract the datset and convert them to Numpy files
-""" get_traindata(path_to_dir,path_traindata)
+""" # Run the below two lines of code to extract the datset and convert them to Numpy files
+get_traindata(path_to_dir,path_traindata)
 get_testdata(path_to_dir,path_testdata) """
  
 """ #-------------Support Vector Machine with MFCC model-------------# 
@@ -298,7 +327,7 @@ X_train,Y_train,X_val,Y_val, X_test = get_spectrograms(path_to_dir,'TrainDataSet
 
 # Applying 2-D Convolution Neural Network on the spectrograms.
 model = cnn_classifier(X_train[0].shape)
-model.fit(np.array(X_train), Y_train, epochs=20, batch_size=32, validation_data= (np.array(X_val), Y_val))
+model.fit(np.array(X_train), Y_train, epochs=10, batch_size=32, validation_data= (np.array(X_val), Y_val))
 
 # Predict the Test dataset using the model and save results to a CSV file.
 Y_test_nn = np.argmax(model.predict(np.array(X_test)),axis=1)
