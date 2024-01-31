@@ -1,33 +1,30 @@
+#----------------------------------------------------------#
+# Machine learning for the classification of audio signals #
+#----------------------------------------------------------#
 import os
-import glob
 import librosa
 import librosa.feature
 import librosa.display
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.io import wavfile
-from scipy import fftpack
-from scipy.stats import kurtosis,skew,mode
+from scipy.stats import kurtosis,skew
 from sklearn.preprocessing import StandardScaler
 from sklearn import svm
 from sklearn.metrics import accuracy_score,confusion_matrix
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import StratifiedShuffleSplit,StratifiedKFold,train_test_split
-from keras import utils
-import tensorflow as tf
+from sklearn.model_selection import StratifiedShuffleSplit
 from keras import layers
-from keras.layers import Activation, Dense, Dropout, Conv1D, Conv2D, Flatten,Reshape, BatchNormalization, ZeroPadding2D,MaxPooling1D,AveragePooling1D, MaxPooling2D, GlobalMaxPooling2D, GlobalAveragePooling1D, AveragePooling2D, Input, Add
+from keras.layers import Dense, Dropout, Flatten
 from keras.models import Sequential
-from keras import regularizers,optimizers
-from keras.optimizers import SGD,Adam
 from keras.utils import to_categorical
-import keras.backend as K
-from keras.models import load_model
-from keras.callbacks import EarlyStopping
 import warnings
 warnings.filterwarnings("ignore")
+
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import messagebox
 
 # Function to extract the training data and convert to numpy files
 def get_traindata(dir_path,path_traindata):
@@ -192,13 +189,19 @@ def plot_confusion_matrix(y_true,y_pred,classifier):
     plt.savefig(classifier + "_confusion_matrix.png")
     plt.show()
 
-# Function to use Support Vector Machines classifier
-def svm_classifier(X_train,Y_train,X_test):
+# Function to create Support Vector Machines classifier and train
+def svm_classifier_train(X_train,Y_train):
 
   # Intialize SVM classifier with One-vs-Rest decision function.
   svm_model = svm.SVC(kernel='rbf', decision_function_shape='ovr')
   # Fit the Training Dataset.
   svm_model.fit(X_train, Y_train)
+  
+  return svm_model
+
+# Function to use SVM model for prediction
+def svm_classifier_predict(svm_model, X_test):
+
   # Predict labels for the test dataset.
   Y_test = svm_model.predict(X_test)
   
@@ -267,22 +270,22 @@ def get_spectrograms(path_to_dir, train_csv , train_extracted, test_csv ,test_ex
 
   return  X_train,Y_train,X_val,Y_val,X_test
 
-#Function to use CNN classifier
+# Function to use CNN classifier
 def cnn_classifier(inputShape):
     # Intializing the model sequential.
     model = Sequential()
 
     # Convolutional layers
-    model.add(layers.Conv2D(16, (2, 2), activation='relu', input_shape=inputShape))
+    model.add(layers.Conv2D(16, (4, 4), activation='relu', input_shape=inputShape))
     model.add(layers.MaxPooling2D((2, 2)))
     model.add(layers.BatchNormalization())
-
-    model.add(layers.Conv2D(32, (2, 2), activation='relu'))
+    
+    model.add(layers.Conv2D(32, (4, 4), activation='relu'))
     model.add(layers.MaxPooling2D((2, 2)))
     model.add(layers.BatchNormalization())
 
     model.add(Flatten())
-    model.add(Dense(32, activation='relu'))
+    model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(4,activation='softmax'))
     
@@ -291,25 +294,83 @@ def cnn_classifier(inputShape):
     print(model.summary())
     
     return model
+  
+#-----------------# 
+# Methods for GUI #
+#-----------------#
+# Function to get the file path from the user
+def browse_file():
+    file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+    entry_path.delete(0, tk.END)
+    entry_path.insert(0, file_path)
+
+# Function to perform prediction and display/save results
+def perform_prediction():
+    input_file_path = entry_path.get()
+
+    if not input_file_path:
+        messagebox.showwarning("Warning", "Please select a CSV file.")
+        return
+
+    try:
+        # Perform prediction (you need to define the necessary functions)
+        X_predict = get_mfcc_features(path_to_dir, input_file_path, 'predict_extracted')
+        y_predict_svm = svm_classifier_predict(svm_model, X_predict)
+
+        # Create a DataFrame with predictions
+        predictions_df = pd.read_csv(input_file_path)
+        predictions_df['Predicted Class ID'] = y_predict_svm.tolist()
+
+        # Display predictions
+        messagebox.showinfo("Prediction", "Prediction completed.\nResults saved to 'PredictedResults.csv'.")
+
+        # Save predictions to a new CSV file
+        predictions_df.to_csv(os.path.join(path_to_dir, 'PredictedResults.csv'), index=False)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
+# Function to define GUI
+def GUI_for_model_prediction():
+    # Create the main GUI window
+    root = tk.Tk()
+    root.title("Audio Classification Prediction")
+
+    # Entry widget for file path
+    entry_path = tk.Entry(root, width=40)
+    entry_path.grid(row=0, column=0, padx=10, pady=10)
+
+    # Browse button to select CSV file
+    btn_browse = tk.Button(root, text="Browse", command=browse_file)
+    btn_browse.grid(row=0, column=1, padx=10, pady=10)
+
+    # Predict button
+    btn_predict = tk.Button(root, text="Predict", command=perform_prediction)
+    btn_predict.grid(row=1, column=0, columnspan=2, pady=10)
+
+    # Run the GUI
+    root.mainloop()
 
 #-------------MAIN-------------# 
 path_to_dir = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification'
 path_traindata = 'DataSet/Training Dataset'
 path_testdata = 'DataSet/Test Dataset'
+entry_path = ""
 
-""" # Run the below two lines of code to extract the datset and convert them to Numpy files
+# Run the below two lines of code to extract the datset and convert them to Numpy files
 get_traindata(path_to_dir,path_traindata)
-get_testdata(path_to_dir,path_testdata) """
+get_testdata(path_to_dir,path_testdata)
  
-""" #-------------Support Vector Machine with MFCC model-------------# 
+#-------------Support Vector Machine with MFCC model-------------# 
 # Get the training and testing data preprocessed with MFCC
 X_train = get_mfcc_features(path_to_dir,'TrainDataSetCSV.csv','train_extracted')
 Y_train = get_labels(path_to_dir,'TrainDataSetCSV.csv')
 X_test = get_mfcc_features(path_to_dir,'TestDataSetCSV.csv','test_extracted')
-#X_train,X_test = standardize_features(X_train,X_test)
+X_train,X_test = standardize_features(X_train,X_test)
 
 # Using SVM classifier to classify the data and storing the result to SVM_MFCC_predict.csv file
-y_test_svm = svm_classifier(X_train,Y_train,X_test)
+svm_model = svm_classifier_train(X_train,Y_train)
+y_test_svm = svm_classifier_predict(svm_model, X_test)
 Y_test = pd.read_csv(os.path.join(path_to_dir,'TestDataSetCSV.csv'))
 Y_test['Predict Class ID'] = y_test_svm.tolist()
 Y_test = Y_test.rename(columns={"new_id":"id"})
@@ -319,15 +380,17 @@ Y_test.to_csv(os.path.join(path_to_dir,'SVM_MFCC_predict.csv'),index=False)
 df = pd.read_csv(os.path.join(path_to_dir,'SVM_MFCC_predict.csv'))
 Y_true = df['Actual Class ID']
 Y_test = df['Predict Class ID']
-plot_confusion_matrix(Y_true,Y_test,"SVM_MFCC") """
+plot_confusion_matrix(Y_true,Y_test,"SVM_MFCC")
 
-#------------- CNN with Spectrogram-------------# 
+GUI_for_model_prediction()
+
+""" #------------- CNN with Spectrogram-------------# 
 # Get the spectrograms
 X_train,Y_train,X_val,Y_val, X_test = get_spectrograms(path_to_dir,'TrainDataSetCSV.csv','train_extracted', 'TestDataSetCSV.csv','test_extracted')
 
 # Applying 2-D Convolution Neural Network on the spectrograms.
 model = cnn_classifier(X_train[0].shape)
-model.fit(np.array(X_train), Y_train, epochs=10, batch_size=32, validation_data= (np.array(X_val), Y_val))
+model.fit(np.array(X_train), Y_train, epochs=20, batch_size=16, validation_data=(np.array(X_val), Y_val))
 
 # Predict the Test dataset using the model and save results to a CSV file.
 Y_test_nn = np.argmax(model.predict(np.array(X_test)),axis=1)
@@ -340,4 +403,4 @@ Y_test.to_csv(os.path.join(path_to_dir,'CNN_Spectrogram.csv'),index=False)
 df = pd.read_csv(os.path.join(path_to_dir,'CNN_Spectrogram.csv'))
 Y_true = df['Actual Class ID']
 Y_test = df['Predict Class ID']
-plot_confusion_matrix(Y_true,Y_test,"CNN_Spectrogram")
+plot_confusion_matrix(Y_true,Y_test,"CNN_Spectrogram") """
