@@ -25,6 +25,7 @@ warnings.filterwarnings("ignore")
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Function to extract the training data and convert to numpy files
 def get_traindata(dir_path,path_traindata):
@@ -299,17 +300,44 @@ def cnn_classifier(inputShape):
 # Methods for GUI #
 #-----------------#
 # Function to get the file path from the user
-def browse_file():
-    file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+# Function to get the file path from the user
+def browse_file(entry_path, window):
+    file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav")])
     entry_path.delete(0, tk.END)
     entry_path.insert(0, file_path)
+
+    # Display the selected audio file as a graph
+    display_audio_graph(file_path, window)
+
+# Function to display the audio file as a graph
+def display_audio_graph(file_path, window):
+    try:
+        # Read audio file and create a simple plot
+        data, sr = librosa.load(file_path) 
+        time = np.arange(0, len(data)) / sr
+
+        fig, ax = plt.subplots()
+        ax.plot(time, data)
+        ax.set(xlabel='Time (s)', ylabel='Amplitude', title='Audio File')
+        ax.grid()
+
+        # Embed the plot in the Tkinter window
+        canvas = FigureCanvasTkAgg(fig, master=window)
+        canvas_widget = canvas.get_tk_widget()
+        canvas_widget.grid(row=2, column=0, columnspan=2)
+
+        # Refresh the canvas
+        canvas.draw()
+
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred while displaying the audio file: {str(e)}")
 
 # Function to perform prediction and display/save results
 def perform_prediction():
     input_file_path = entry_path.get()
 
     if not input_file_path:
-        messagebox.showwarning("Warning", "Please select a CSV file.")
+        messagebox.showwarning("Warning", "Please select a WAV file.")
         return
 
     try:
