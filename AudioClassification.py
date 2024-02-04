@@ -299,8 +299,6 @@ def cnn_classifier(inputShape):
 #-----------------# 
 # Methods for GUI #
 #-----------------#
-# Function to get the file path from the user
-# Function to get the file path from the user
 def browse_file(entry_path, window):
     file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav")])
     entry_path.delete(0, tk.END)
@@ -333,51 +331,63 @@ def display_audio_graph(file_path, window):
         messagebox.showerror("Error", f"An error occurred while displaying the audio file: {str(e)}")
 
 # Function to perform prediction and display/save results
-def perform_prediction():
+def perform_prediction(entry_path, result_label):
     input_file_path = entry_path.get()
 
     if not input_file_path:
-        messagebox.showwarning("Warning", "Please select a WAV file.")
+        messagebox.showwarning("Warning", "Please select an audio file.")
         return
 
     try:
+        label_names=["Black","Red","Silver"]
         # Perform prediction (you need to define the necessary functions)
-        X_predict = get_mfcc_features(path_to_dir, input_file_path, 'predict_extracted')
+        data, sr = librosa.load(input_file_path)
+        mfcc_data = librosa.feature.mfcc(y=data,sr=44100)
+        # Calculating various statistic measures on the coefficients.
+        mean_mfcc = np.mean(mfcc_data, axis=1)
+        median_mfcc= np.median(mfcc_data,axis=1)
+        std_mfcc = np.std(mfcc_data, axis=1)
+        skew_mfcc = skew(mfcc_data, axis=1)
+        kurt_mfcc = kurtosis(mfcc_data, axis=1)
+        maximum_mfcc = np.amax(mfcc_data, axis=1)
+        minimum_mfcc = np.amin(mfcc_data, axis=1)    
+        # Concatinating all the statistic measures and adding to the feature list.
+        X_predict = np.concatenate((mean_mfcc,median_mfcc,std_mfcc,skew_mfcc,kurt_mfcc,maximum_mfcc,minimum_mfcc))
+        # standardize the audio file
+        sc = StandardScaler(with_mean=False)
+        X_train_std= sc.fit_transform(X_train)
+        X_predict = sc.transform(X_predict.reshape(1,-1)) 
         y_predict_svm = svm_classifier_predict(svm_model, X_predict)
 
-        # Create a DataFrame with predictions
-        predictions_df = pd.read_csv(input_file_path)
-        predictions_df['Predicted Class ID'] = y_predict_svm.tolist()
-
-        # Display predictions
-        messagebox.showinfo("Prediction", "Prediction completed.\nResults saved to 'PredictedResults.csv'.")
-
-        # Save predictions to a new CSV file
-        predictions_df.to_csv(os.path.join(path_to_dir, 'PredictedResults.csv'), index=False)
+        # Display prediction results in GUI label
+        result_message = f"Predicted class: {label_names[y_predict_svm[0]-1]}"
+        messagebox.showinfo("Prediction", result_message)
 
     except Exception as e:
-        messagebox.showerror("Error", f"An error occurred: {str(e)}")
+        messagebox.showerror("Error", f"An error occurred during prediction: {str(e)}")
 
 # Function to define GUI
-def GUI_for_model_prediction():
-    # Create the main GUI window
-    root = tk.Tk()
-    root.title("Audio Classification Prediction")
+def create_main_gui():
+    window = tk.Tk()
+    window.title("Audio Classification Prediction")
 
     # Entry widget for file path
-    entry_path = tk.Entry(root, width=40)
+    entry_path = tk.Entry(window, width=40)
     entry_path.grid(row=0, column=0, padx=10, pady=10)
 
-    # Browse button to select CSV file
-    btn_browse = tk.Button(root, text="Browse", command=browse_file)
+    # Browse button to select WAV file
+    btn_browse = tk.Button(window, text="Browse", command=lambda: browse_file(entry_path, window))
     btn_browse.grid(row=0, column=1, padx=10, pady=10)
 
     # Predict button
-    btn_predict = tk.Button(root, text="Predict", command=perform_prediction)
+    btn_predict = tk.Button(window, text="Predict", command=lambda: perform_prediction(entry_path, result_label))
     btn_predict.grid(row=1, column=0, columnspan=2, pady=10)
 
-    # Run the GUI
-    root.mainloop()
+    # Label to display prediction result
+    result_label = tk.Label(window, text="")
+    result_label.grid(row=2, column=0, columnspan=2, pady=10)
+
+    return window, entry_path, result_label
 
 #-------------MAIN-------------# 
 path_to_dir = 'C:/Users/Gurunag Sai/OneDrive/Desktop/project/AudioClassification'
@@ -386,18 +396,18 @@ path_testdata = 'DataSet/Test Dataset'
 entry_path = ""
 
 # Run the below two lines of code to extract the datset and convert them to Numpy files
-get_traindata(path_to_dir,path_traindata)
-get_testdata(path_to_dir,path_testdata)
+#get_traindata(path_to_dir,path_traindata)
+#get_testdata(path_to_dir,path_testdata)
  
 #-------------Support Vector Machine with MFCC model-------------# 
 # Get the training and testing data preprocessed with MFCC
 X_train = get_mfcc_features(path_to_dir,'TrainDataSetCSV.csv','train_extracted')
 Y_train = get_labels(path_to_dir,'TrainDataSetCSV.csv')
 X_test = get_mfcc_features(path_to_dir,'TestDataSetCSV.csv','test_extracted')
-X_train,X_test = standardize_features(X_train,X_test)
+X_train_std,X_test = standardize_features(X_train,X_test)
 
 # Using SVM classifier to classify the data and storing the result to SVM_MFCC_predict.csv file
-svm_model = svm_classifier_train(X_train,Y_train)
+svm_model = svm_classifier_train(X_train_std,Y_train)
 y_test_svm = svm_classifier_predict(svm_model, X_test)
 Y_test = pd.read_csv(os.path.join(path_to_dir,'TestDataSetCSV.csv'))
 Y_test['Predict Class ID'] = y_test_svm.tolist()
@@ -410,7 +420,11 @@ Y_true = df['Actual Class ID']
 Y_test = df['Predict Class ID']
 plot_confusion_matrix(Y_true,Y_test,"SVM_MFCC")
 
-GUI_for_model_prediction()
+# Create the main GUI
+main_window, entry_path, result_label = create_main_gui()
+
+# Run the GUI
+main_window.mainloop()
 
 """ #------------- CNN with Spectrogram-------------# 
 # Get the spectrograms
