@@ -1,6 +1,7 @@
 #----------------------------------------------------------#
 # Machine learning for the classification of audio signals #
 #----------------------------------------------------------#
+# *** Update the path to the folder where the code exists in the below MAIN method variables *** #
 # Importing the audioClassification ML project
 import AudioClassification as ac
 # Libraries
@@ -296,7 +297,7 @@ def create_main_gui():
             for filename in os.listdir(folder_path):
                 if filename.endswith(".wav"):
                     count += 1
-            folder_description.config(text = "Prediction results stored in:" + str(count))
+            folder_description.config(text = "Prediction folder has " + str(count) + " audio files,\n click on PREDICT for audio data prediction...")
     # Browse button to select file path
     btn_browse = tk.Button(frame_folder_prediction1, text="Browse", command=browse_file_folder)
     btn_browse.pack(pady=5, padx=5, side=tk.TOP)
